@@ -50,7 +50,7 @@ class ImgFigure extends React.Component {
     if (this.props.arrange.isCenter) {
       styleObj.zIndex = 11;
     }
-    var imgFigureClassName = "img-figure";
+    let imgFigureClassName = 'img-figure';
         imgFigureClassName += this.props.arrange.isInverse?' is-inverse':'';
     return (
       <figure className={imgFigureClassName} style={styleObj} onClick={this.handleClick.bind(this)}>
@@ -67,6 +67,32 @@ class ImgFigure extends React.Component {
 }
 
 ImgFigure.defaultProps = {};
+
+class ControllerUnits extends React.Component {
+  handleClick(e){
+    if (this.props.arrange.isCenter) {
+      this.props.inverse();
+    }else{
+      this.props.center();
+    }
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  render(){
+    let controllerUnitsClassName = 'controller-units';
+    if (this.props.arrange.isCenter) {
+      controllerUnitsClassName +=' is-center';
+      if (this.props.arrange.isInverse) {
+        controllerUnitsClassName +=' is-inverse';
+      }
+    }
+    return (
+      <span className={controllerUnitsClassName} onClick={this.handleClick.bind(this)}></span>
+    );
+  }
+}
+
+
 
 class AppComponent extends React.Component {
 
@@ -135,7 +161,6 @@ class AppComponent extends React.Component {
         halfImgW = Math.ceil(imgW / 2),
         halfImgH = Math.ceil(imgH / 2);
     //caculate  center of picture
-        console.log(this);
         this.Constant.centerPos.left = halfStageW - halfImgW;
         this.Constant.centerPos.top = halfStageH - halfImgH;
         this.Constant.hPosRange.leftSecx[0]= -halfImgW;
@@ -164,7 +189,7 @@ class AppComponent extends React.Component {
         vPosRangeTopY = vPosRange.topY,
         vPosRangeX = vPosRange.x,
         imgsArrangeTopArr = [],
-        topImgNum = Math.ceil(Math.random()*2),
+        topImgNum = Math.floor(Math.random()*2),
         topImgSpliceIndex = 0,
         imgsArrangeCenterArr = imgsArrangeArr.splice(centerIndex,1);
         //the index of first positied picture need to be center and dont need to be rotated
@@ -232,8 +257,8 @@ class AppComponent extends React.Component {
           };
         }
         imgFigure.push(<ImgFigure key={index} data={value} ref={'imgFigure'+index} arrange={this.state.imgsArrangeArr[index]} inverse={this.inverse(index).bind(this)} center={this.center(index).bind(this)}/>);
+        controllerUnits.push(<ControllerUnits key={index} arrange={this.state.imgsArrangeArr[index]} inverse={this.inverse(index).bind(this)} center={this.center(index).bind(this)}/>);
       }.bind(this));
-
       return (
         <section className="stage" ref="stage">
           <section className="img-sec">
