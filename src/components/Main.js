@@ -23,28 +23,43 @@ function getRangeRandom(low,high){
   return Math.ceil(Math.random()*(high - low) + low);
 }
 //get random between 0 ~ 30°
-function get30DegRandom(low,high){
+function get30DegRandom(){
   return (Math.random() > 0.5?'':'-')+Math.ceil(Math.random()*30);
 }
 
 class ImgFigure extends React.Component {
+  handleClick(e){
+    if (this.props.arrange.isCenter) {
+      this.props.inverse();
+    }else{
+      this.props.center();
+    }
+    e.stopPropagation();
+    e.preventDefault();
+  }
   render() {
     let styleObj = {};
     if(this.props.arrange.pos) {
       styleObj = this.props.arrange.pos;
     }
     if (this.props.arrange.rotate) {
-      (['-moz-','-ms-','-webkit-','']).forEach(function(value){
-        styleObj[value+'transform'] = 'rotate('+this.props.arrange.rotate+'deg)';
+      (['MozTransform','msTransform','WebkitTransform','transform']).forEach(function(value){
+        styleObj[value] = 'rotate('+this.props.arrange.rotate+'deg)';
       }.bind(this));
     }
-    let imgFigureClassName = "img-figure";
-        imgFigureClassName += this.props.arrange.isInverse?' is-inverse ':'';
+    if (this.props.arrange.isCenter) {
+      styleObj.zIndex = 11;
+    }
+    var imgFigureClassName = "img-figure";
+        imgFigureClassName += this.props.arrange.isInverse?' is-inverse':'';
     return (
-      <figure className={imgFigureClassName} style={styleObj}>
+      <figure className={imgFigureClassName} style={styleObj} onClick={this.handleClick.bind(this)}>
           <img src={this.props.data.imageURL} alt={this.props.data.title}/>
           <figcaption>
             <h2 className="img-title">{this.props.data.title}</h2>
+            <div className="img-back" onClick={this.handleClick.bind(this)}>
+              <p>{this.props.data.description}</p>
+            </div>
           </figcaption>
       </figure>
     );
@@ -65,7 +80,8 @@ class AppComponent extends React.Component {
         //     top:'0'
         //   },
         //   rotate:0,
-        //   isInverse:false
+        //   isInverse:false,
+        //   isCenter:false
         // }
       ]
     };
@@ -87,7 +103,23 @@ class AppComponent extends React.Component {
     }
   }
   //rotate picrure function
+  inverse(index) {
+    return function (){
+      var imgsArrangeArr = this.state.imgsArrangeArr;
 
+      imgsArrangeArr[index].isInverse = !imgsArrangeArr[index].isInverse;
+
+      this.setState({
+        imgsArrangeArr: imgsArrangeArr
+      });
+    }.bind(this);
+  }
+
+  center(index){
+    return function(){
+      this.rearrange(index);
+    }.bind(this);
+  }
   //loaded component，then caculate the position of every picture
   componentDidMount() {
     //get size ofstage
@@ -136,8 +168,11 @@ class AppComponent extends React.Component {
         topImgSpliceIndex = 0,
         imgsArrangeCenterArr = imgsArrangeArr.splice(centerIndex,1);
         //the index of first positied picture need to be center and dont need to be rotated
-        imgsArrangeCenterArr[0].pos = centerPos,
-        imgsArrangeCenterArr[0].rotate  = 0,
+        imgsArrangeCenterArr[0] = {
+          pos:centerPos,
+          rotate:0,
+          isCenter:true
+        },
         //
         topImgSpliceIndex = Math.ceil(Math.random()*(imgsArrangeArr.length - topImgNum)),
         imgsArrangeTopArr = imgsArrangeArr.splice(topImgSpliceIndex,topImgNum);
@@ -148,10 +183,11 @@ class AppComponent extends React.Component {
               top:getRangeRandom(vPosRangeTopY[0],vPosRangeTopY[1]),
               left:getRangeRandom(vPosRangeX[0],vPosRangeX[1])
             },
-            rotate:get30DegRandom()
+            rotate:get30DegRandom(),
+            isCenter:false
           };
         });
-        //Vertical position  random range
+        //Vertical position random range
         for (let i = 0,j = imgsArrangeArr.length,k = j/2; i < j; i++) {
           let hPosRangeLoRx = null;
           if (i < k) {
@@ -164,7 +200,8 @@ class AppComponent extends React.Component {
               top:getRangeRandom(hPosRangeY[0],hPosRangeY[1]),
               left:getRangeRandom(hPosRangeLoRx[0],hPosRangeLoRx[1])
             },
-            rotate:get30DegRandom()
+            rotate:get30DegRandom(),
+            isCenter:false
           };
         }
         //Toparea position  random range
@@ -190,10 +227,11 @@ class AppComponent extends React.Component {
               top:0
             },
             rotate:0,
-            isInverse:false
+            isInverse:false,
+            isCenter:false
           };
         }
-        imgFigure.push(<ImgFigure key={index} data={value} ref={'imgFigure'+index} arrange={this.state.imgsArrangeArr[index]}/>);
+        imgFigure.push(<ImgFigure key={index} data={value} ref={'imgFigure'+index} arrange={this.state.imgsArrangeArr[index]} inverse={this.inverse(index).bind(this)} center={this.center(index).bind(this)}/>);
       }.bind(this));
 
       return (
