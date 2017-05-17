@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom';
 
 //get picture datas，利用自执行函数, prop name transform url
 var imageDatas = require('../data/imageDatas.json');
+
 (function genImageURL(imageDatasArr) {
   for (let i = 0, j = imageDatasArr.length; i < j; i++) {
     var singleImageData = imageDatasArr[i];
@@ -17,10 +18,30 @@ var imageDatas = require('../data/imageDatas.json');
   return imageDatasArr;
 })(imageDatas);
 
+//get random
+function getRangeRandom(low,high){
+  return Math.ceil(Math.random()*(high - low) + low);
+}
+//get random between 0 ~ 30°
+function get30DegRandom(low,high){
+  return (Math.random() > 0.5?'':'-')+Math.ceil(Math.random()*30);
+}
+
 class ImgFigure extends React.Component {
   render() {
+    let styleObj = {};
+    if(this.props.arrange.pos) {
+      styleObj = this.props.arrange.pos;
+    }
+    if (this.props.arrange.rotate) {
+      (['-moz-','-ms-','-webkit-','']).forEach(function(value){
+        styleObj[value+'transform'] = 'rotate('+this.props.arrange.rotate+'deg)';
+      }.bind(this));
+    }
+    let imgFigureClassName = "img-figure";
+        imgFigureClassName += this.props.arrange.isInverse?' is-inverse ':'';
     return (
-      <figure className="img-figure">
+      <figure className={imgFigureClassName} style={styleObj}>
           <img src={this.props.data.imageURL} alt={this.props.data.title}/>
           <figcaption>
             <h2 className="img-title">{this.props.data.title}</h2>
@@ -33,7 +54,23 @@ class ImgFigure extends React.Component {
 ImgFigure.defaultProps = {};
 
 class AppComponent extends React.Component {
-  Constant:{
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      imgsArrangeArr: [
+        // {
+        //   pos:{
+        //     left:'0',
+        //     top:'0'
+        //   },
+        //   rotate:0,
+        //   isInverse:false
+        // }
+      ]
+    };
+
+    this.Constant = {
       centerPos: {
         left:0,
         right:0
@@ -47,7 +84,10 @@ class AppComponent extends React.Component {
         x:[0,0],
         topY:[0,0]
       }
+    }
   }
+  //rotate picrure function
+
   //loaded component，then caculate the position of every picture
   componentDidMount() {
     //get size ofstage
@@ -63,10 +103,6 @@ class AppComponent extends React.Component {
         halfImgW = Math.ceil(imgW / 2),
         halfImgH = Math.ceil(imgH / 2);
     //caculate  center of picture
-        // this.Constant.centerPos = {
-        //   left: halfStageW - halfImgW,
-        //   top: halfStageH - halfImgH
-        // };
         console.log(this);
         this.Constant.centerPos.left = halfStageW - halfImgW;
         this.Constant.centerPos.top = halfStageH - halfImgH;
@@ -78,34 +114,100 @@ class AppComponent extends React.Component {
         this.Constant.hPosRange.y[1] = stageH - halfImgH;
         this.Constant.vPosRange.topY[0] = -halfImgH;
         this.Constant.vPosRange.topY[1] = halfStageH - halfImgH*3;
-        this.Constant.vPosRange.x[0] = halfImgW - imgW;
-        this.Constant.vPosRange.x[1] = halfImgW;
+        this.Constant.vPosRange.x[0] = halfStageW - imgW;
+        this.Constant.vPosRange.x[1] = halfStageW;
+
+        this.rearrange(0);
   }
   //reposition all picture
   rearrange(centerIndex){
+    var imgsArrangeArr = this.state.imgsArrangeArr,
+        Constant = this.Constant,
+        centerPos = Constant.centerPos,
+        hPosRange = Constant.hPosRange,
+        vPosRange = Constant.vPosRange,
+        hPosRangeLeftSecX = hPosRange.leftSecx,
+        hPosRangeRightSecX = hPosRange.rightSecx,
+        hPosRangeY = hPosRange.y,
+        vPosRangeTopY = vPosRange.topY,
+        vPosRangeX = vPosRange.x,
+        imgsArrangeTopArr = [],
+        topImgNum = Math.ceil(Math.random()*2),
+        topImgSpliceIndex = 0,
+        imgsArrangeCenterArr = imgsArrangeArr.splice(centerIndex,1);
+        //the index of first positied picture need to be center and dont need to be rotated
+        imgsArrangeCenterArr[0].pos = centerPos,
+        imgsArrangeCenterArr[0].rotate  = 0,
+        //
+        topImgSpliceIndex = Math.ceil(Math.random()*(imgsArrangeArr.length - topImgNum)),
+        imgsArrangeTopArr = imgsArrangeArr.splice(topImgSpliceIndex,topImgNum);
+        //top area picture info
+        imgsArrangeTopArr.forEach(function(value,index){
+          imgsArrangeTopArr[index] = {
+            pos:{
+              top:getRangeRandom(vPosRangeTopY[0],vPosRangeTopY[1]),
+              left:getRangeRandom(vPosRangeX[0],vPosRangeX[1])
+            },
+            rotate:get30DegRandom()
+          };
+        });
+        //Vertical position  random range
+        for (let i = 0,j = imgsArrangeArr.length,k = j/2; i < j; i++) {
+          let hPosRangeLoRx = null;
+          if (i < k) {
+            hPosRangeLoRx = hPosRangeLeftSecX;
+          }else{
+            hPosRangeLoRx = hPosRangeRightSecX;
+          }
+          imgsArrangeArr[i] = {
+            pos:{
+              top:getRangeRandom(hPosRangeY[0],hPosRangeY[1]),
+              left:getRangeRandom(hPosRangeLoRx[0],hPosRangeLoRx[1])
+            },
+            rotate:get30DegRandom()
+          };
+        }
+        //Toparea position  random range
+        if(imgsArrangeTopArr && imgsArrangeTopArr[0]) {
+          imgsArrangeArr.splice(topImgSpliceIndex,0,imgsArrangeTopArr[0]);
+        }
+        imgsArrangeArr.splice(centerIndex,0,imgsArrangeCenterArr[0]);
 
+        this.setState({
+          imgsArrangeArr:imgsArrangeArr
+        });
   }
 
   render() {
+      let controllerUnits = [],
+          imgFigure = [];
 
-    let controllerUnits = [],
-        imgFigure = [];
-    imageDatas.forEach(function(value,index) {
-      imgFigure.push(<ImgFigure key={index} data={value} ref={'imgFigure'+index}/>);
-    });
+      imageDatas.forEach(function(value,index) {
+        if (!this.state.imgsArrangeArr[index]) {
+          this.state.imgsArrangeArr[index] = {
+            pos:{
+              left:0,
+              top:0
+            },
+            rotate:0,
+            isInverse:false
+          };
+        }
+        imgFigure.push(<ImgFigure key={index} data={value} ref={'imgFigure'+index} arrange={this.state.imgsArrangeArr[index]}/>);
+      }.bind(this));
 
-    return (
-      <section className="stage" ref="stage">
-        <section className="img-sec">
-          {imgFigure}
+      return (
+        <section className="stage" ref="stage">
+          <section className="img-sec">
+            {imgFigure}
+          </section>
+          <nav className="controller-nav">
+            {controllerUnits}
+          </nav>
         </section>
-        <nav className="controller-nav">
-          {controllerUnits}
-        </nav>
-      </section>
-    );
+      );
+    }
   }
-}
 
 AppComponent.defaultProps = {};
 
